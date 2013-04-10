@@ -6,22 +6,34 @@ import java.util.List;
 public class ResultAggregator {
 	
 	public AggregateSummary aggregateSummary(Patient patient) {
-		List<Result> pendingResults = ResultFetcher.getResultsFor(patient);
+		List<Result> pendingResults = getResultsFor(patient);
+		validateResults(pendingResults);
+		
 		int sum = 0;
-		int minimum = 0;
-		int maximum = 0;
+		int minimum = Integer.MAX_VALUE;
+		int maximum = Integer.MIN_VALUE;
 		for (Result result : pendingResults) {
-			sum = result.getValue();
-			if (result.getValue() < minimum) {
-				minimum = result.getValue();
-			}
-			if (result.getValue() > maximum) {
-				maximum = result.getValue();
-			}
+			sum += result.getValue();
+			minimum = Math.min(minimum, result.getValue());
+			maximum = Math.max(maximum, result.getValue());
 		}
-		BigDecimal count = new BigDecimal(pendingResults.size());
+		return createAggregateSummary(pendingResults.size(), sum, minimum, maximum);
+	}
+
+	protected AggregateSummary createAggregateSummary(int numberOfResults, int sum, int minimum, int maximum) {
+		BigDecimal count = new BigDecimal(numberOfResults);
 		BigDecimal mean = new BigDecimal(sum).divide(count);
 		return new AggregateSummary(mean, minimum, maximum);
+	}
+
+	protected void validateResults(List<Result> pendingResults) {
+		if (pendingResults.size() == 0) {
+			throw new IllegalStateException("There are no results for this patient.");
+		}
+	}
+
+	protected List<Result> getResultsFor(Patient patient) {
+		return ResultFetcher.getResultsFor(patient);
 	}
 
 }
